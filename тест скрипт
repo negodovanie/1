@@ -1,0 +1,52 @@
+function removeTextFromColumnsVW() {
+  const sheetName = 'Закрытые'; // Название листа
+  const columns = ['V', 'CA']; // Столбцы для обработки
+  const textToRemove = '№'; // Текст для удаления
+  const maxRows = 11000; // Максимальное количество строк для обработки
+  const startRow = 2; // Начальная строка для обработки
+  const logEnabled = true; // Включить логирование
+
+  try {
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = spreadsheet.getSheetByName(sheetName);
+
+    if (!sheet) {
+      throw new Error(`Лист с названием "${sheetName}" не найден.`);
+    }
+
+    const totalRows = sheet.getLastRow();
+    const rowsToProcess = Math.min(maxRows, totalRows - startRow + 1);
+
+    if (rowsToProcess <= 0) {
+      logEnabled && Logger.log('Нет данных для обработки.');
+      return;
+    }
+
+    // Вычисляем диапазон столбцов
+    const startColumnIndex = columns[0].charCodeAt(0) - 'A'.charCodeAt(0) + 1;
+    const numColumns = columns.length;
+
+    // Считываем все данные за один вызов
+    const range = sheet.getRange(startRow, startColumnIndex, rowsToProcess, numColumns);
+    const data = range.getValues();
+
+    // Обработка данных в памяти
+    const processedData = data.map(row =>
+      row.map(cell => {
+        if (typeof cell === 'string') {
+          return cell.replace(new RegExp(textToRemove, 'g'), ''); // Удаляем текст
+        }
+        return cell; // Возвращаем как есть, если не строка
+      })
+    );
+
+    // Записываем обработанные данные обратно
+    range.setValues(processedData);
+
+    logEnabled &&
+      Logger.log(`Обработаны строки ${startRow}-${startRow + rowsToProcess - 1}, столбцы ${columns.join(', ')}.`);
+    logEnabled && Logger.log('Скрипт успешно завершил работу.');
+  } catch (error) {
+    Logger.log(`Ошибка: ${error.message}`);
+  }
+}
